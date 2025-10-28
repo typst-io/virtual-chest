@@ -1,0 +1,134 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+    dependencies {
+        classpath 'org.jooq:jooq-meta:3.16.23'
+        classpath 'org.jooq:jooq-codegen:3.16.23'
+        classpath 'com.mysql:mysql-connector-j:9.3.0'
+        classpath 'org.xerial:sqlite-jdbc:3.50.3.0'
+    }
+}
+
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '2.2.21'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '2.2.21'
+    id 'io.typst.spigradle' version '3.1.2'
+}
+
+group = 'dev.entree'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+    papermc()
+    maven {
+        url 'https://repo.extendedclip.com/releases/'
+    }
+}
+
+def libs = [
+        'org.jetbrains.kotlin:kotlin-stdlib:2.2.21',
+        'org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.9.0',
+        'io.typst:bukkit-kotlin-serialization:3.0.0',
+        'io.typst:command-bukkit:3.1.0',
+        'io.typst:command-kotlin:3.1.0',
+
+        'com.zaxxer:HikariCP:5.1.0',
+        'com.mysql:mysql-connector-j:9.3.0',
+        'org.xerial:sqlite-jdbc:3.50.3.0',
+        'org.jooq:jooq:3.16.23',
+        'org.jooq:jooq-meta:3.16.23',
+        'org.flywaydb:flyway-core:9.22.3',
+        'org.flywaydb:flyway-mysql:9.22.3'
+]
+
+dependencies {
+    compileOnly paper('1.20.1')
+    // compileOnly(vault())
+    compileOnly(libs)
+    compileOnly('me.clip:placeholderapi:2.11.6')
+    compileOnly(lombok('1.18.42'))
+    annotationProcessor(lombok('1.18.42'))
+    compileOnly(fileTree(include: '*.jar', dir: 'libs'))
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+java {
+    withSourcesJar()
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
+spigot {
+    libraries = libs
+    apiVersion '1.20'
+    commands {
+        create('창고') {
+            aliases = ['상자']
+        }
+    }
+    authors = ['EntryPoint']
+    softDepends = ['PlaceholderAPI']
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs += 'src-gen'
+        }
+    }
+}
+
+tasks.register("debug", Exec) {
+    dependsOn(assemble)
+    group = 'build'
+    commandLine "cmd", "/c", "Powershell -File ${layout.projectDirectory.file("debug.ps1").asFile.absolutePath} ${project.name}-${project.version}"
+}
+
+import org.jooq.codegen.GenerationTool
+import org.jooq.meta.jaxb.*
+
+task jooqCodegen {
+    doLast {
+        Configuration mysqlConfig = new Configuration()
+                .withJdbc(new Jdbc()
+                        .withDriver("com.mysql.jdbc.Driver")
+                        .withUrl("jdbc:mysql://localhost/")
+                        .withUser("root")
+                        .withPassword(findProperty('mysql.password')))
+                .withGenerator(new Generator()
+                        .withDatabase(new Database()
+                                .withName("org.jooq.meta.mysql.MySQLDatabase")
+                                .withIncludes(".*")
+                                .withExcludes("")
+                                .withInputSchema('mc_virtual_chest'))
+                        .withTarget(new Target()
+                                .withPackageName("dev.entree.vchest.mysql")
+                                .withDirectory("$projectDir/src-gen")))
+        Configuration sqliteConfig = new Configuration()
+                .withJdbc(new Jdbc()
+                        .withDriver("org.sqlite.JDBC")
+                        .withUrl("jdbc:sqlite:${projectDir.absolutePath}${File.separatorChar}mc_virtual_chest.db"))
+                .withGenerator(new Generator()
+                        .withDatabase(new Database()
+                                .withName("org.jooq.meta.sqlite.SQLiteDatabase")
+                                .withIncludes(".*")
+                                .withExcludes(""))
+                        .withTarget(new Target()
+                                .withPackageName("dev.entree.vchest.sqlite")
+                                .withDirectory("$projectDir/src-gen")))
+        GenerationTool.generate(mysqlConfig)
+        GenerationTool.generate(sqliteConfig)
+    }
+}
