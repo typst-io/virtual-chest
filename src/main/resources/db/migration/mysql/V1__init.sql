@@ -1,3 +1,7 @@
+CREATE DATABASE IF NOT EXISTS mc_virtual_chest;
+
+use mc_virtual_chest;
+
 CREATE TABLE IF NOT EXISTS player
 (
     player_id INTEGER NOT NULL AUTO_INCREMENT,

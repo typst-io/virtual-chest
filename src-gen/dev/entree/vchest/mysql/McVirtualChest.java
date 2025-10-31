@@ -5,7 +5,6 @@ package dev.entree.vchest.mysql;
 
 
 import dev.entree.vchest.mysql.tables.Chest;
-import dev.entree.vchest.mysql.tables.FlywaySchemaHistory;
 import dev.entree.vchest.mysql.tables.Player;
 import dev.entree.vchest.mysql.tables.Slot;
 
@@ -36,11 +35,6 @@ public class McVirtualChest extends SchemaImpl {
     public final Chest CHEST = Chest.CHEST;
 
     /**
-     * The table <code>mc_virtual_chest.flyway_schema_history</code>.
-     */
-    public final FlywaySchemaHistory FLYWAY_SCHEMA_HISTORY = FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY;
-
-    /**
      * The table <code>mc_virtual_chest.player</code>.
      */
     public final Player PLAYER = Player.PLAYER;
@@ -67,7 +61,6 @@ public class McVirtualChest extends SchemaImpl {
     public final List<Table<?>> getTables() {
         return Arrays.asList(
             Chest.CHEST,
-            FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY,
             Player.PLAYER,
             Slot.SLOT
         );

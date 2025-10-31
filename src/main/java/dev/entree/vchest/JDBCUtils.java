@@ -9,13 +9,13 @@ import java.io.File;
 
 public class JDBCUtils {
     public static HikariDataSource getDataSource(JDBCContext ctx) {
-        String protocol = ctx.protocol();
-        String host = ctx.host();
-        String port = ctx.port();
-        String username = ctx.username();
-        String password = ctx.password();
-        File dbDir = ctx.dir();
-        String dbName = ctx.dbName();
+        String protocol = ctx.getProtocol();
+        String host = ctx.getHost();
+        String port = ctx.getPort();
+        String username = ctx.getUsername();
+        String password = ctx.getPassword();
+        File dbDir = ctx.getDir();
+        String dbName = ctx.getDbName();
         // hikari
         HikariConfig hikariConfig = new HikariConfig();
         String url = dbDir != null

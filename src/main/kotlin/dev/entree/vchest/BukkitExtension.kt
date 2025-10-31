@@ -1,5 +1,6 @@
 package dev.entree.vchest
 
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.Plugin
@@ -21,24 +22,24 @@ fun Plugin.runTaskAsync(delay: Long = 0, runnable: () -> Unit): BukkitTask {
     }.runTaskLaterAsynchronously(this, delay)
 }
 
-fun <A> Plugin.futureTaskAsync(delay: Long = 0, supplier: Supplier<A>): Pair<Int, CompletableFuture<A>> {
-    return if (isEnabled) {
+fun <A> Plugin.futureTaskAsync(delay: Long = 0, supplier: Supplier<A>): CompletableFuture<A> {
+    return if (isEnabled && Bukkit.isPrimaryThread()) {
         val future = CompletableFuture<A>()
-        val taskId = runTaskAsync {
+        val taskId = runTaskAsync(delay) {
             try {
                 future.complete(supplier.get())
             } catch (ex: Exception) {
                 future.completeExceptionally(ex)
             }
         }.taskId
-        taskId to future
+        future
     } else {
         val future = try {
             CompletableFuture.completedFuture(supplier.get())
         } catch (ex: Exception) {
             CompletableFuture.failedFuture(ex)
         }
-        -1 to future
+        future
     }
 }
 

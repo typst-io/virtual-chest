@@ -2,6 +2,7 @@ package dev.entree.vchest
 
 import dev.entree.vchest.cmd.ChestCommand
 import dev.entree.vchest.config.PluginConfig
+import dev.entree.vchest.config.PluginConfig.Companion.dbName
 import dev.entree.vchest.dbms.ChestRepository
 import dev.entree.vchest.dbms.JDBCChestRepository
 import dev.entree.vchest.dbms.SQLEngine
@@ -9,6 +10,7 @@ import dev.entree.vchest.inventory.InventoryEngine
 import io.typst.bukkit.kotlin.serialization.bukkitPluginJson
 import io.typst.bukkit.kotlin.serialization.configJsonFile
 import io.typst.command.bukkit.BukkitCommands
+import org.bstats.bukkit.Metrics
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
@@ -20,6 +22,9 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 import java.util.logging.Level
+import javax.swing.JFrame
+import javax.swing.JOptionPane
+
 
 fun nfmt(number: Number): String =
     NumberFormat.getNumberInstance().format(number)
@@ -55,6 +60,10 @@ class ChestPlugin : JavaPlugin() {
     val openingChests: MutableMap<UUID, ChestViewContext> = mutableMapOf()
     lateinit var repository: ChestRepository
 
+    companion object {
+        val perm: String = "virtualchest.op"
+    }
+
     override fun onEnable() {
         // config
         if (configFile.isFile) {
@@ -65,31 +74,27 @@ class ChestPlugin : JavaPlugin() {
         }
         dataFolder.resolve("example-config.json").writeText(bukkitPluginJson.encodeToString(pluginConfig))
         fileListener = FileChangeListener.registerPrime("config.json", { text ->
-            pluginConfig = bukkitPluginJson.decodeFromString<PluginConfig>(text)
+            val newConfig = bukkitPluginJson.decodeFromString<PluginConfig>(text)
+            val prevProtocol = pluginConfig.dbProtocol
+            val newProtocol = newConfig.dbProtocol
+            pluginConfig = newConfig
+            if (prevProtocol != newProtocol) {
+                repository.close()
+                repository = JDBCChestRepository.create(this, getJDBCContext())
+                logger.info("datasource changed from ${prevProtocol} to ${newProtocol}")
+            }
             logger.info("config.json reloaded.")
         }, this).orElse(null)
 
-        val dbName = "mc_virtual_chest"
-        val jdbcCtx = if (pluginConfig.dbProtocol == "mysql") {
-            JDBCContext.ofMySQL(
-                logger,
-                pluginConfig.dbHost,
-                pluginConfig.dbPort.toString(),
-                pluginConfig.dbUsername,
-                pluginConfig.dbPassword,
-                dbName
-            )
-        } else if (pluginConfig.dbProtocol == "sqlite") {
-            JDBCContext.ofSqlite(logger, dbName, dataFolder)
-        } else {
-            throw RuntimeException("Unknown sql protocol: ${pluginConfig.dbProtocol}")
-        }
+        val jdbcCtx = getJDBCContext()
         repository = JDBCChestRepository.create(this, jdbcCtx)
 
         // events
         SQLEngine.register(this)
         BukkitCommands.register("창고", ChestCommand.node, ChestCommand::execute, this)
         InventoryEngine.register(this)
+        System.setProperty("bstats.relocatecheck", "false")
+        Metrics(this, 27796)
     }
 
     override fun onDisable() {
@@ -104,6 +109,32 @@ class ChestPlugin : JavaPlugin() {
             }
             ChestCommand.saveChest(p, chestCtx.num, items, repository)
         }
-        runCatching { repository.close() }
+        runCatching {
+            repository.close()
+        }
+    }
+
+    fun getJDBCContext(config: PluginConfig = pluginConfig): JDBCContext {
+        val ctx = when (config.dbProtocol) {
+            "mysql" -> {
+                JDBCContext.ofMySQL(
+                    logger,
+                    config.dbHost,
+                    config.dbPort.toString(),
+                    config.dbUsername,
+                    config.dbPassword,
+                    dbName
+                )
+            }
+
+            "sqlite" -> {
+                JDBCContext.ofSqlite(logger, dbName, dataFolder)
+            }
+
+            else -> {
+                throw RuntimeException("Unknown sql protocol: ${config.dbProtocol}")
+            }
+        }
+        return ctx.copy(classLoader = classLoader)
     }
 }

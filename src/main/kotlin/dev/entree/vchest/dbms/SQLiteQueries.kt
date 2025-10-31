@@ -131,4 +131,110 @@ object SQLiteQueries {
             SQLiteObjects.fromPlayer(player)
         }
     }
+
+    fun getWholeSnapshot(ctx: DSLContext): DatabaseSnapshotDAO {
+        val players = ctx.selectFrom(Tables.PLAYER)
+            .fetch { SQLiteObjects.fromPlayer(it) }
+        val chests = ctx.selectFrom(Tables.CHEST)
+            .fetch { SQLiteObjects.fromChest(it) }
+        val slots = ctx.selectFrom(Tables.SLOT)
+            .fetch { SQLiteObjects.fromSlot(it) }
+        return DatabaseSnapshotDAO(players, chests, slots)
+    }
+
+    fun setWholeSnapshot(ctx: DSLContext, x: DatabaseSnapshotDAO): Int {
+        return ctx.transactionResult { trx ->
+            val dsl = trx.dsl()
+
+            // players
+            val playerTemplate = dsl
+                .insertInto(
+                    Tables.PLAYER,
+                    Tables.PLAYER.PLAYER_ID,
+                    Tables.PLAYER.PLAYER_UUID,
+                    Tables.PLAYER.PLAYER_NAME
+                )
+                .values(
+                    DSL.param(Tables.PLAYER.PLAYER_ID.dataType),
+                    DSL.param(Tables.PLAYER.PLAYER_UUID.dataType),
+                    DSL.param(Tables.PLAYER.PLAYER_NAME)
+                )
+                .onConflict(Tables.PLAYER.PLAYER_UUID)
+                .doNothing()
+            val playerBatch = dsl.batch(playerTemplate)
+            for (player in x.players) {
+                playerBatch.bind(
+                    player.id,
+                    player.uuid,
+                    player.name
+                )
+            }
+
+            // chests
+            val chestTemplate = dsl
+                .insertInto(
+                    Tables.CHEST,
+                    Tables.CHEST.CHEST_PLAYER_ID,
+                    Tables.CHEST.CHEST_NUM
+                )
+                .values(
+                    DSL.param(Tables.CHEST.CHEST_PLAYER_ID),
+                    DSL.param(Tables.CHEST.CHEST_NUM),
+                )
+                .onConflict(
+                    Tables.CHEST.CHEST_PLAYER_ID,
+                    Tables.CHEST.CHEST_NUM
+                )
+                .doNothing()
+            val chestBatch = dsl.batch(chestTemplate)
+            for (chest in x.chests) {
+                chestBatch.bind(
+                    chest.playerId,
+                    chest.num
+                )
+            }
+
+            // slots
+            dsl.deleteFrom(Tables.SLOT)
+                .execute()
+            val slotTemplate = dsl
+                .insertInto(
+                    Tables.SLOT,
+                    Tables.SLOT.SLOT_PLAYER_ID,
+                    Tables.SLOT.SLOT_CHEST_NUM,
+                    Tables.SLOT.SLOT_SLOT,
+                    Tables.SLOT.SLOT_ITEM_BYTES
+                )
+                .values(
+                    DSL.param(Tables.SLOT.SLOT_PLAYER_ID.dataType),
+                    DSL.param(Tables.SLOT.SLOT_CHEST_NUM.dataType),
+                    DSL.param(Tables.SLOT.SLOT_SLOT.dataType),
+                    DSL.param(Tables.SLOT.SLOT_ITEM_BYTES.dataType),
+                )
+                .onConflict(
+                    Tables.SLOT.SLOT_PLAYER_ID,
+                    Tables.SLOT.SLOT_CHEST_NUM,
+                    Tables.SLOT.SLOT_SLOT,
+                )
+                .doUpdate()
+                .set(
+                    Tables.SLOT.SLOT_ITEM_BYTES,
+                    DSL.field("excluded.${Tables.SLOT.SLOT_ITEM_BYTES.name}", Tables.SLOT.SLOT_ITEM_BYTES.dataType)
+                )
+            val slotBatch = dsl.batch(slotTemplate)
+            for (slot in x.slots) {
+                slotBatch.bind(
+                    slot.playerId,
+                    slot.chestNum,
+                    slot.slot,
+                    slot.itemBytes
+                )
+            }
+
+            val playerBatchResult = playerBatch.execute()
+            val chestBatchResult = chestBatch.execute()
+            val slotBatchResult = slotBatch.execute()
+            playerBatchResult.size + chestBatchResult.size + slotBatchResult.size
+        }
+    }
 }

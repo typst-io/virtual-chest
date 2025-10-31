@@ -11,4 +11,8 @@ data class PluginConfig(
     val dbPassword: String = System.getenv("MYSQL_PW") ?: "password",
     val chestTitle: String = "%num% 번 창고",
     val chestSizeRow: Int = 6,
-)
+) {
+    companion object {
+        const val dbName: String = "mc_virtual_chest"
+    }
+}

@@ -33,7 +33,7 @@ class JDBCChestRepository(
     }
 
     private fun <A> useDatabaseAsync(f: (DSLContext) -> A): CompletableFuture<A> {
-        val (_, future) = plugin.futureTaskAsync {
+        return plugin.futureTaskAsync {
             dataSource.connection.use { conn ->
                 try {
                     f(DSL.using(conn, sqlDialect))
@@ -42,7 +42,6 @@ class JDBCChestRepository(
                 }
             }
         }
-        return future
     }
 
     override fun upsertChest(
@@ -78,6 +77,26 @@ class JDBCChestRepository(
                 SQLiteQueries.getOrCreatePlayer(it, uuid)
             } else {
                 MySQLQueries.getOrCreatePlayer(it, uuid)
+            }
+        }
+    }
+
+    override fun getWholeSnapshot(): CompletableFuture<DatabaseSnapshotDAO> {
+        return useDatabaseAsync {
+            if (it.dialect() == SQLDialect.SQLITE) {
+                SQLiteQueries.getWholeSnapshot(it)
+            } else {
+                MySQLQueries.getWholeSnapshot(it)
+            }
+        }
+    }
+
+    override fun setWholeSnapshot(snapshot: DatabaseSnapshotDAO): CompletableFuture<Int> {
+        return useDatabaseAsync {
+            if (it.dialect() == SQLDialect.SQLITE) {
+                SQLiteQueries.setWholeSnapshot(it, snapshot)
+            } else {
+                MySQLQueries.setWholeSnapshot(it, snapshot)
             }
         }
     }

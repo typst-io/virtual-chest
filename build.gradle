@@ -32,8 +32,8 @@ def libs = [
         'org.jetbrains.kotlin:kotlin-stdlib:2.2.21',
         'org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.9.0',
         'io.typst:bukkit-kotlin-serialization:3.0.0',
-        'io.typst:command-bukkit:3.1.0',
-        'io.typst:command-kotlin:3.1.0',
+        'io.typst:command-bukkit:3.1.5',
+        'io.typst:command-kotlin:3.1.5',
 
         'com.zaxxer:HikariCP:5.1.0',
         'com.mysql:mysql-connector-j:9.3.0',
@@ -41,12 +41,12 @@ def libs = [
         'org.jooq:jooq:3.16.23',
         'org.jooq:jooq-meta:3.16.23',
         'org.flywaydb:flyway-core:9.22.3',
-        'org.flywaydb:flyway-mysql:9.22.3'
+        'org.flywaydb:flyway-mysql:9.22.3',
+        'org.bstats:bstats-bukkit:3.0.2'
 ]
 
 dependencies {
     compileOnly paper('1.20.1')
-    // compileOnly(vault())
     compileOnly(libs)
     compileOnly('me.clip:placeholderapi:2.11.6')
     compileOnly(lombok('1.18.42'))
@@ -116,10 +116,12 @@ task jooqCodegen {
                         .withTarget(new Target()
                                 .withPackageName("dev.entree.vchest.mysql")
                                 .withDirectory("$projectDir/src-gen")))
+        def path = "${projectDir.absolutePath}${File.separatorChar}mc_virtual_chest.db".toString()
+        println(path)
         Configuration sqliteConfig = new Configuration()
                 .withJdbc(new Jdbc()
                         .withDriver("org.sqlite.JDBC")
-                        .withUrl("jdbc:sqlite:${projectDir.absolutePath}${File.separatorChar}mc_virtual_chest.db"))
+                        .withUrl("jdbc:sqlite:$path"))
                 .withGenerator(new Generator()
                         .withDatabase(new Database()
                                 .withName("org.jooq.meta.sqlite.SQLiteDatabase")

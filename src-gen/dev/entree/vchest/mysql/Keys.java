@@ -5,11 +5,9 @@ package dev.entree.vchest.mysql;
 
 
 import dev.entree.vchest.mysql.tables.Chest;
-import dev.entree.vchest.mysql.tables.FlywaySchemaHistory;
 import dev.entree.vchest.mysql.tables.Player;
 import dev.entree.vchest.mysql.tables.Slot;
 import dev.entree.vchest.mysql.tables.records.ChestRecord;
-import dev.entree.vchest.mysql.tables.records.FlywaySchemaHistoryRecord;
 import dev.entree.vchest.mysql.tables.records.PlayerRecord;
 import dev.entree.vchest.mysql.tables.records.SlotRecord;
 
@@ -32,7 +30,6 @@ public class Keys {
     // -------------------------------------------------------------------------
 
     public static final UniqueKey<ChestRecord> KEY_CHEST_PRIMARY = Internal.createUniqueKey(Chest.CHEST, DSL.name("KEY_chest_PRIMARY"), new TableField[] { Chest.CHEST.CHEST_PLAYER_ID, Chest.CHEST.CHEST_NUM }, true);
-    public static final UniqueKey<FlywaySchemaHistoryRecord> KEY_FLYWAY_SCHEMA_HISTORY_PRIMARY = Internal.createUniqueKey(FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY, DSL.name("KEY_flyway_schema_history_PRIMARY"), new TableField[] { FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY.INSTALLED_RANK }, true);
     public static final UniqueKey<PlayerRecord> KEY_PLAYER_PLAYER_UUID = Internal.createUniqueKey(Player.PLAYER, DSL.name("KEY_player_player_uuid"), new TableField[] { Player.PLAYER.PLAYER_UUID }, true);
     public static final UniqueKey<PlayerRecord> KEY_PLAYER_PRIMARY = Internal.createUniqueKey(Player.PLAYER, DSL.name("KEY_player_PRIMARY"), new TableField[] { Player.PLAYER.PLAYER_ID }, true);
     public static final UniqueKey<SlotRecord> KEY_SLOT_PRIMARY = Internal.createUniqueKey(Slot.SLOT, DSL.name("KEY_slot_PRIMARY"), new TableField[] { Slot.SLOT.SLOT_SLOT, Slot.SLOT.SLOT_CHEST_NUM, Slot.SLOT.SLOT_PLAYER_ID }, true);
