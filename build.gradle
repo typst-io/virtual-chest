@@ -31,7 +31,8 @@ repositories {
 def libs = [
         'org.jetbrains.kotlin:kotlin-stdlib:2.2.21',
         'org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.9.0',
-        'io.typst:bukkit-kotlin-serialization:3.0.0',
+        'io.typst:bukkit-kotlin-serialization:3.1.2',
+        'com.charleskorn.kaml:kaml-jvm:0.96.0',
         'io.typst:command-bukkit:3.1.5',
         'io.typst:command-kotlin:3.1.5',
 
@@ -74,8 +75,11 @@ spigot {
     libraries = libs
     apiVersion '1.20'
     commands {
+        register('vc') {
+            aliases = ['chest']
+        }
         register('창고') {
-            aliases = ['상자']
+            aliases = ['상자', '가방', '배낭']
         }
     }
     permissions {

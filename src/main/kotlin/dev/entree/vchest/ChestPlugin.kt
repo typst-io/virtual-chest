@@ -7,9 +7,9 @@ import dev.entree.vchest.dbms.ChestRepository
 import dev.entree.vchest.dbms.JDBCChestRepository
 import dev.entree.vchest.dbms.SQLEngine
 import dev.entree.vchest.inventory.InventoryEngine
-import io.typst.bukkit.kotlin.serialization.bukkitPluginJson
-import io.typst.bukkit.kotlin.serialization.configJsonFile
-import io.typst.command.bukkit.BukkitCommands
+import io.typst.bukkit.kotlin.serialization.bukkitPluginYaml
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import org.bstats.bukkit.Metrics
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -22,8 +22,6 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 import java.util.logging.Level
-import javax.swing.JFrame
-import javax.swing.JOptionPane
 
 
 fun nfmt(number: Number): String =
@@ -51,7 +49,7 @@ fun <A> CompletableFuture<A>.thenAcceptSync(f: (A) -> Unit) {
 }
 
 class ChestPlugin : JavaPlugin() {
-    val configFile: File get() = File(dataFolder, "config.json")
+    val configFile: File get() = File(dataFolder, "config.yml")
     var pluginConfig: PluginConfig = PluginConfig()
     var fileListener: Closeable? = null
     val syncExecutor: Executor = Executor { command ->
@@ -67,31 +65,33 @@ class ChestPlugin : JavaPlugin() {
     override fun onEnable() {
         // config
         if (configFile.isFile) {
-            pluginConfig = bukkitPluginJson.decodeFromString<PluginConfig>(configJsonFile.readText())
+            pluginConfig = bukkitPluginYaml.decodeFromString<PluginConfig>(configFile.readText())
         } else {
             configFile.parentFile.mkdirs()
-            configFile.writeText(bukkitPluginJson.encodeToString<PluginConfig>(pluginConfig))
+            configFile.writeText(bukkitPluginYaml.encodeToString<PluginConfig>(pluginConfig))
         }
-        dataFolder.resolve("example-config.json").writeText(bukkitPluginJson.encodeToString(pluginConfig))
-        fileListener = FileChangeListener.registerPrime("config.json", { text ->
-            val newConfig = bukkitPluginJson.decodeFromString<PluginConfig>(text)
-            val prevProtocol = pluginConfig.dbProtocol
-            val newProtocol = newConfig.dbProtocol
-            pluginConfig = newConfig
-            if (prevProtocol != newProtocol) {
+        dataFolder.resolve("example-config.yml").writeText(bukkitPluginYaml.encodeToString(pluginConfig))
+        fileListener = FileChangeListener.registerPrime("config.yml", { text ->
+            val newConfig = bukkitPluginYaml.decodeFromString<PluginConfig>(text)
+            if (pluginConfig.dbProtocol != newConfig.dbProtocol) {
                 repository.close()
                 repository = JDBCChestRepository.create(this, getJDBCContext())
-                logger.info("datasource changed from ${prevProtocol} to ${newProtocol}")
+                logger.info("datasource changed from ${pluginConfig.dbProtocol} to ${newConfig.dbProtocol}")
             }
-            logger.info("config.json reloaded.")
+            if (pluginConfig.locale != newConfig.locale) {
+                ChestCommand.register(this, newConfig)
+            }
+
+            pluginConfig = newConfig
+            logger.info("config.yml reloaded.")
         }, this).orElse(null)
 
         val jdbcCtx = getJDBCContext()
         repository = JDBCChestRepository.create(this, jdbcCtx)
 
         // events
+        ChestCommand.register(this)
         SQLEngine.register(this)
-        BukkitCommands.register("창고", ChestCommand.node, ChestCommand::execute, this)
         InventoryEngine.register(this)
         System.setProperty("bstats.relocatecheck", "false")
         Metrics(this, 27796)

@@ -2,6 +2,7 @@ package dev.entree.vchest.cmd
 
 import dev.entree.vchest.*
 import dev.entree.vchest.api.ChestOpenEvent
+import dev.entree.vchest.config.PluginConfig
 import dev.entree.vchest.dbms.ChestRepository
 import dev.entree.vchest.dbms.JDBCChestRepository
 import dev.entree.vchest.inventory.InventoryEngine
@@ -11,6 +12,9 @@ import io.typst.command.CommandCancellationException
 import io.typst.command.StandardArguments.intArg
 import io.typst.command.StandardArguments.strArg
 import io.typst.command.bukkit.BukkitArguments.playerArg
+import io.typst.command.bukkit.BukkitCommandConfig
+import io.typst.command.bukkit.BukkitCommandHelp
+import io.typst.command.bukkit.BukkitCommands
 import io.typst.command.bukkit.BukkitControlFlows.getPlayerOrThrow
 import io.typst.command.kotlin.command
 import io.typst.command.kotlin.commandMap
@@ -18,6 +22,7 @@ import org.bukkit.Bukkit
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import org.bukkit.plugin.java.JavaPlugin
 import org.jooq.SQLDialect
 import java.util.*
 
@@ -31,17 +36,35 @@ sealed interface ChestCommand {
             listOf("sqlite", "mysql")
         }
         val node: Command<ChestCommand> = commandMap(
-            "열기" to command(::OpenChestOthers, playerArg, intArg.withName("num"))
+            "open" to command(::OpenChestOthers, playerArg, intArg.withName("num"))
+                .withPermission(ChestPlugin.perm),
+            "migration" to command(::DataMigration, dataSourceTypeArg).withPermission(ChestPlugin.perm)
+        ).withFallback(command(::OpenChest, intArg.withName("num").asOptional()))
+        val nodeKr: Command<ChestCommand> = commandMap(
+            "열기" to command(::OpenChestOthers, playerArg, intArg.withName("번호"))
                 .withPermission(ChestPlugin.perm),
             "데이터이전" to command(::DataMigration, dataSourceTypeArg).withPermission(ChestPlugin.perm)
-        ).withFallback(command(::OpenChest, intArg.withName("num").asOptional()))
+        ).withFallback(command(::OpenChest, intArg.withName("번호").asOptional()))
 
         fun getDialectOrThrow(xs: String): SQLDialect {
             return if (xs == "sqlite") {
                 SQLDialect.SQLITE
             } else if (xs == "mysql") {
                 SQLDialect.MYSQL
-            } else throw CommandCancellationException("§c존재하지 않는 데이터 타입입니다. 가능한 데이터 타입: sqlite, mysql")
+            } else throw CommandCancellationException("§cUnknown database type. Available: sqlite, mysql")
+        }
+
+        fun register(plugin: JavaPlugin, config: PluginConfig = chestPlugin.pluginConfig) {
+            val cmdConfig = BukkitCommandConfig.empty.withFormatter { help ->
+                val newHelp = if (chestPlugin.pluginConfig.overrideLocale.isNotEmpty()) {
+                    help.withLanguage(chestPlugin.pluginConfig.overrideLocale)
+                } else {
+                    help
+                }
+                BukkitCommandHelp.format(newHelp)
+            }
+            BukkitCommands.registerPrime("vc", node, ::execute, { _, _ -> emptyList<String>() }, cmdConfig, plugin)
+            BukkitCommands.registerPrime("창고", nodeKr, ::execute, { _, _ -> emptyList<String>() }, cmdConfig, plugin)
         }
 
         fun saveChest(player: Player, num: Int, items: Map<Int, ItemStack>, repository: ChestRepository) {
@@ -120,14 +143,19 @@ sealed interface ChestCommand {
                     val player = getPlayerOrThrow(sender)
                     val perm = "virtualchest.chest.${num}"
                     if (!player.hasPermission(perm) || !openChest(player, num, chestPlugin.repository)) {
-                        throw CommandCancellationException("§c권한이 없습니다: $perm")
+                        throw CommandCancellationException(
+                            chestPlugin.pluginConfig.noPermissionMessage.replace(
+                                "%perm%",
+                                perm
+                            )
+                        )
                     }
                 }
 
                 is DataMigration -> {
                     getDialectOrThrow(x.dataType)
                     if (chestPlugin.pluginConfig.dbProtocol == x.dataType) {
-                        throw CommandCancellationException("§c동일한 데이터베이스로 이전할 수 없습니다: ${x.dataType}")
+                        throw CommandCancellationException("§cCannot migration from the same db type: ${x.dataType}")
                     }
                     val jdbcCtx = chestPlugin.getJDBCContext(chestPlugin.pluginConfig.copy(dbProtocol = x.dataType))
                     val snapshotFuture = chestPlugin.repository.getWholeSnapshot()
@@ -138,7 +166,7 @@ sealed interface ChestCommand {
                         }
                     }.thenAcceptSync {
                         chestPlugin.logger.info("migration done!")
-                        sender.sendMessage("이전 완료")
+                        sender.sendMessage("migration done!")
                     }
                 }
 
