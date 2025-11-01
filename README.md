@@ -10,6 +10,8 @@ A bukkit plugin to use virtual chests for players.
 
 ## Config
 
+The config `config.yml` will be reloaded when you edit the file.
+
 - `dbProtocol`: the datasource plugin use, available: sqlite, mysql
 - `dbHost`: the db host for mysql
 - `dbPort`: the db port for mysql
