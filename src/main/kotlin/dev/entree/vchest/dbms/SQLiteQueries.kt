@@ -3,7 +3,6 @@ package dev.entree.vchest.dbms
 import dev.entree.vchest.sqlite.Tables
 import org.bukkit.Bukkit
 import org.jooq.DSLContext
-import org.jooq.SQLDialect
 import org.jooq.impl.DSL
 import java.util.*
 
@@ -82,20 +81,11 @@ object SQLiteQueries {
                 .where(Tables.PLAYER.PLAYER_UUID.eq(uuid.toString()))
                 .fetchOne { it.value1() } ?: return@transactionResult emptyList()
 
-            val slots = if (trx.dialect() == SQLDialect.SQLITE) {
-                dsl.select(Tables.SLOT.asterisk())
-                    .from(Tables.SLOT)
-                    .where(Tables.SLOT.SLOT_CHEST_NUM.eq(num))
-                    .and(Tables.SLOT.SLOT_PLAYER_ID.eq(playerId))
-                    .fetchInto(Tables.SLOT)
-            } else {
-                dsl.select(Tables.SLOT.asterisk())
-                    .from(Tables.SLOT)
-                    .where(Tables.SLOT.SLOT_CHEST_NUM.eq(num))
-                    .and(Tables.SLOT.SLOT_PLAYER_ID.eq(playerId))
-                    .forUpdate()
-                    .fetchInto(Tables.SLOT)
-            }
+            val slots = dsl.select(Tables.SLOT.asterisk())
+                .from(Tables.SLOT)
+                .where(Tables.SLOT.SLOT_CHEST_NUM.eq(num))
+                .and(Tables.SLOT.SLOT_PLAYER_ID.eq(playerId))
+                .fetchInto(Tables.SLOT)
 
             dsl.deleteFrom(Tables.SLOT)
                 .where(Tables.SLOT.SLOT_PLAYER_ID.eq(playerId))

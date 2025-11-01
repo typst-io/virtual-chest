@@ -78,10 +78,6 @@ class ChestPlugin : JavaPlugin() {
                 repository = JDBCChestRepository.create(this, getJDBCContext())
                 logger.info("datasource changed from ${pluginConfig.dbProtocol} to ${newConfig.dbProtocol}")
             }
-            if (pluginConfig.locale != newConfig.locale) {
-                ChestCommand.register(this, newConfig)
-            }
-
             pluginConfig = newConfig
             logger.info("config.yml reloaded.")
         }, this).orElse(null)
