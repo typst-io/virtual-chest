@@ -1,29 +1,35 @@
 # VirtualChest
 
-A bukkit plugin to use virtual chests for players.
+A Bukkit plugin that provides virtual chests for players.
 
 ## Commands
 
-- `/chest <chest-num>`: open the given number of a player's chest. requires perm `virtualchest.chest.<chestnum>` except first chest, if you want to disable first chest then you need to add permission node `virtualchest.chest.1` as false.
-- `/chest open <player> <chest-num>`: open the given number of the given player's chest. requires perm `virtualchest.op`
-- `/chest migration <datatype>` migration database from the datatype from config to the given datatype -- sqlite, mysql -- then if you want to change datasource, need to edit the `dbProtocol` in config
+- `/chest <chest-num>`: Opens your chest with the given number.  
+  Requires `virtualchest.chest.<chestnum>` for chests beyond the first.  
+  The first chest is allowed by default; to disable it, explicitly deny `virtualchest.chest.1`.
+
+- `/chest open <player> <chest-num>`: Opens the specified player's chest.  
+  Requires `virtualchest.op`.
+
+- `/chest migration <datatype>`: Migrates data from the type set in the config to the given type (`sqlite`, `mysql`).  
+  To switch the data source afterward, change `dbProtocol` in the config.
 
 ## Config
 
-The config `config.yml` will be reloaded when you edit the file.
+The `config.yml` is reloaded when you save the file.
 
-- `dbProtocol`: the datasource plugin use, available: sqlite, mysql
-- `dbHost`: the db host for mysql
-- `dbPort`: the db port for mysql
-- `dbUsername` the db username for mysql
-- `dbPassword` the db username for mysql, defaults system env `MYSQL_PW`
-- `chestTitle`: the title of a chest inventory
-- `chestSizeRow`: the row of a chest inventory
-- `noPermissionMesssage`: the message when use `/chest <chestnum>`
-- `overrideLocale`: override locale -- `ko_kr`, `en_us`
+- `dbProtocol`: Data source used by the plugin. Available: `sqlite`, `mysql`
+- `dbHost`: MySQL host
+- `dbPort`: MySQL port
+- `dbUsername`: MySQL username
+- `dbPassword`: MySQL password (defaults to system env `MYSQL_PW`)
+- `chestTitle`: Title of the chest inventory
+- `chestSizeRow`: Number of rows in the chest inventory
+- `noPermissionMessage`: Message shown when using `/chest <chest-num>` without permission
+- `overrideLocale`: Override locale — `ko_kr`, `en_us`
 
 ## API
 
 ### Events
 
-- `dev.entree.vchest.api.ChestOpenEvent`: Fires when a player trying to open a chest.
+- `dev.entree.vchest.api.ChestOpenEvent`: Fires when a player tries to open a chest.

@@ -33,8 +33,8 @@ def libs = [
         'org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.9.0',
         'io.typst:bukkit-kotlin-serialization:3.1.2',
         'com.charleskorn.kaml:kaml-jvm:0.96.0',
-        'io.typst:command-bukkit:3.1.5',
-        'io.typst:command-kotlin:3.1.5',
+        'io.typst:command-bukkit:3.1.6',
+        'io.typst:command-kotlin:3.1.6',
 
         'com.zaxxer:HikariCP:5.1.0',
         'com.mysql:mysql-connector-j:9.3.0',
