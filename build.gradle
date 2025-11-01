@@ -74,8 +74,17 @@ spigot {
     libraries = libs
     apiVersion '1.20'
     commands {
-        create('창고') {
+        register('창고') {
             aliases = ['상자']
+        }
+    }
+    permissions {
+        register('virtualchest.op')
+        register('virtualchest.chest.1') {
+            defaults = 'true'
+        }
+        register('virtualchest.chest.*') {
+            defaults = 'false'
         }
     }
     authors = ['EntryPoint']
