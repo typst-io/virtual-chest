@@ -88,11 +88,14 @@ sealed interface ChestCommand {
                 }.toMap()
                 val config = chestPlugin.pluginConfig
                 val title = config.chestTitle.replace("%num%", num.toString())
-                val inv = InventoryEngine.createChest(title, items) { newItems ->
+                val row = chestPlugin.pluginConfig.chestSizeRow.coerceIn(1, 6)
+                val (coerceItems, otherItems) = InventoryEngine.coerceRow(items, row)
+                val inv = InventoryEngine.createChest(title, row, coerceItems) { newItems ->
                     chestPlugin.openingChests.remove(uuid)
                     saveChest(target, num, newItems, repository)
                 }
                 viewer.openInventory(inv)
+                otherItems.forEach(viewer::giveItemOrDrop)
                 chestPlugin.openingChests[uuid] = ChestViewContext(uuid, num, viewer.uniqueId)
             }
         }
