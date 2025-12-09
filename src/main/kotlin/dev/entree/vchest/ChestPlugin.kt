@@ -19,6 +19,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.io.Closeable
 import java.io.File
 import java.text.NumberFormat
+import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
@@ -57,6 +58,8 @@ class ChestPlugin : JavaPlugin() {
         runTask(0, command::run)
     }
     val openingChests: MutableMap<UUID, ChestViewContext> = mutableMapOf()
+    var lastTick: LocalDateTime = LocalDateTime.now()
+    var timeoutSecond: Int = 60
     lateinit var repository: ChestRepository
 
     companion object {
@@ -65,6 +68,11 @@ class ChestPlugin : JavaPlugin() {
 
     override fun onEnable() {
         // config
+        timeoutSecond = try {
+            Bukkit.spigot().spigotConfig.getInt("settings.timeout-time", -1).takeIf { it > 0 }
+        } catch (_: Exception) {
+            null
+        } ?: 60
         if (configFile.isFile) {
             pluginConfig = bukkitPluginYaml.decodeFromString<PluginConfig>(configFile.readText())
         } else {

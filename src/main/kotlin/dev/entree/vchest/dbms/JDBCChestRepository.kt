@@ -41,7 +41,7 @@ class JDBCChestRepository(
         }
 
         fun getCurrentExpirationTime(): Field<LocalDateTime> {
-            return DSL.localDateTimeAdd(DSL.currentLocalDateTime(), 4, DatePart.SECOND)
+            return DSL.localDateTimeAdd(DSL.currentLocalDateTime(), chestPlugin.timeoutSecond, DatePart.SECOND)
         }
     }
 
