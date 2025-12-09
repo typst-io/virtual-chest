@@ -1,10 +1,14 @@
 package dev.entree.vchest.dbms
 
+import dev.entree.vchest.chestPlugin
 import dev.entree.vchest.sqlite.Tables
 import org.bukkit.Bukkit
 import org.jooq.DSLContext
+import org.jooq.DatePart
 import org.jooq.impl.DSL
+import java.time.LocalDateTime
 import java.util.*
+import java.util.logging.Level
 
 object SQLiteQueries {
     fun upsertChest(ctx: DSLContext, uuid: UUID, num: Int, items: Map<Int, ByteArray>): IntArray {
@@ -16,70 +20,111 @@ object SQLiteQueries {
                 .where(Tables.PLAYER.PLAYER_UUID.eq(uuid.toString()))
                 .fetchOne { it.value1() } ?: return@transactionResult IntArray(0)
 
-            // upsert chest
+            // upsert chest & unlock
             dsl
                 .insertInto(
                     Tables.CHEST,
                     Tables.CHEST.CHEST_NUM,
-                    Tables.CHEST.CHEST_PLAYER_ID
+                    Tables.CHEST.CHEST_PLAYER_ID,
+                    Tables.CHEST.CHEST_EXPIRES_AT
                 )
                 .values(
                     DSL.value(num),
-                    DSL.value(playerId)
+                    DSL.value(playerId),
+                    DSL.value(null as? LocalDateTime),
                 )
                 .onConflict(
                     Tables.CHEST.CHEST_PLAYER_ID,
                     Tables.CHEST.CHEST_NUM
                 )
-                .doNothing()
+                .doUpdate()
+                .set(Tables.CHEST.CHEST_EXPIRES_AT, null as? LocalDateTime)
                 .execute()
 
-            val template = dsl
-                .insertInto(
-                    Tables.SLOT,
-                    Tables.SLOT.SLOT_SLOT,
-                    Tables.SLOT.SLOT_CHEST_NUM,
-                    Tables.SLOT.SLOT_PLAYER_ID,
-                    Tables.SLOT.SLOT_ITEM_BYTES
-                )
-                .values(
-                    DSL.param(Tables.SLOT.SLOT_SLOT.dataType),
-                    DSL.param(Tables.SLOT.SLOT_CHEST_NUM),
-                    DSL.param(Tables.SLOT.SLOT_PLAYER_ID),
-                    DSL.param(Tables.SLOT.SLOT_ITEM_BYTES.dataType),
-                )
-                .onConflict(
-                    Tables.SLOT.SLOT_SLOT,
-                    Tables.SLOT.SLOT_CHEST_NUM,
-                    Tables.SLOT.SLOT_PLAYER_ID,
-                )
-                .doUpdate()
-                .set(
-                    Tables.SLOT.SLOT_ITEM_BYTES,
-                    DSL.field("excluded.${Tables.SLOT.SLOT_ITEM_BYTES.name}", Tables.SLOT.SLOT_ITEM_BYTES.dataType)
-                )
-            val batch = dsl.batch(template)
+            if (items.isNotEmpty()) {
+                val template = dsl
+                    .insertInto(
+                        Tables.SLOT,
+                        Tables.SLOT.SLOT_SLOT,
+                        Tables.SLOT.SLOT_CHEST_NUM,
+                        Tables.SLOT.SLOT_PLAYER_ID,
+                        Tables.SLOT.SLOT_ITEM_BYTES
+                    )
+                    .values(
+                        DSL.param(Tables.SLOT.SLOT_SLOT.dataType),
+                        DSL.param(Tables.SLOT.SLOT_CHEST_NUM),
+                        DSL.param(Tables.SLOT.SLOT_PLAYER_ID),
+                        DSL.param(Tables.SLOT.SLOT_ITEM_BYTES.dataType),
+                    )
+                    .onConflict(
+                        Tables.SLOT.SLOT_SLOT,
+                        Tables.SLOT.SLOT_CHEST_NUM,
+                        Tables.SLOT.SLOT_PLAYER_ID,
+                    )
+                    .doUpdate()
+                    .set(
+                        Tables.SLOT.SLOT_ITEM_BYTES,
+                        DSL.field("excluded.${Tables.SLOT.SLOT_ITEM_BYTES.name}", Tables.SLOT.SLOT_ITEM_BYTES.dataType)
+                    )
+                val batch = dsl.batch(template)
 
-            for ((slot, itemBytes) in items) {
-                batch.bind(
-                    slot,
-                    num,
-                    playerId,
-                    itemBytes
-                )
-            }
-            batch.execute()
+                for ((slot, itemBytes) in items) {
+                    batch.bind(
+                        slot,
+                        num,
+                        playerId,
+                        itemBytes
+                    )
+                }
+                batch.execute()
+            } else intArrayOf(0)
         }
     }
 
-    fun popChest(ctx: DSLContext, uuid: UUID, num: Int): List<SlotDAO> {
-        return ctx.transactionResult { trx ->
+    fun popChest(ctx: DSLContext, uuid: UUID, num: Int): List<SlotDAO>? {
+        return ctx.transactionResult<List<SlotDAO>?> { trx ->
             val dsl = trx.dsl()
-
             val playerId = dsl.select(Tables.PLAYER.PLAYER_ID)
                 .from(Tables.PLAYER)
                 .where(Tables.PLAYER.PLAYER_UUID.eq(uuid.toString()))
                 .fetchOne { it.value1() } ?: return@transactionResult emptyList()
+
+            // lock
+            val requiresAt = DSL.localDateTimeAdd(DSL.currentLocalDateTime(), 4, DatePart.SECOND)
+            val lockUpdates =
+                try {
+                    dsl
+                        .insertInto(
+                            Tables.CHEST,
+                            Tables.CHEST.CHEST_NUM,
+                            Tables.CHEST.CHEST_PLAYER_ID,
+                            Tables.CHEST.CHEST_EXPIRES_AT,
+                        )
+                        .values(
+                            DSL.value(num),
+                            DSL.value(playerId),
+                            requiresAt
+                        )
+                        .onConflict(Tables.CHEST.CHEST_NUM, Tables.CHEST.CHEST_PLAYER_ID)
+                        .doUpdate()
+                        .set(
+                            Tables.CHEST.CHEST_EXPIRES_AT,
+                            DSL.case_()
+                                .`when`(
+                                    Tables.CHEST.CHEST_EXPIRES_AT.isNull
+                                        .or(Tables.CHEST.CHEST_EXPIRES_AT.lessOrEqual(DSL.currentLocalDateTime())),
+                                    requiresAt
+                                )
+                                .otherwise(Tables.CHEST.CHEST_EXPIRES_AT)
+                        )
+                        .execute()
+                } catch (ex: Exception) {
+                    JDBCChestRepository.onLockError(ex)
+                    0
+                }
+            if (lockUpdates <= 0) {
+                return@transactionResult null
+            }
 
             val slots = dsl.select(Tables.SLOT.asterisk())
                 .from(Tables.SLOT)
@@ -225,6 +270,20 @@ object SQLiteQueries {
             val chestBatchResult = chestBatch.execute()
             val slotBatchResult = slotBatch.execute()
             playerBatchResult.size + chestBatchResult.size + slotBatchResult.size
+        }
+    }
+
+    fun renewChestExpiration(ctx: DSLContext, uuid: UUID, num: Int): Int {
+        return ctx.transactionResult { trx ->
+            val dsl = trx.dsl()
+            dsl.update(Tables.CHEST.join(Tables.PLAYER).on(Tables.PLAYER.PLAYER_ID.eq(Tables.CHEST.CHEST_PLAYER_ID)))
+                .set(Tables.CHEST.CHEST_EXPIRES_AT, JDBCChestRepository.getCurrentExpirationTime())
+                .where(
+                    Tables.PLAYER.PLAYER_UUID.eq(uuid.toString())
+                        .and(Tables.CHEST.CHEST_EXPIRES_AT.isNotNull)
+                        .and(Tables.CHEST.CHEST_NUM.eq(num))
+                )
+                .execute()
         }
     }
 }

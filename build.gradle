@@ -4,8 +4,8 @@ buildscript {
         mavenLocal()
     }
     dependencies {
-        classpath 'org.jooq:jooq-meta:3.16.23'
-        classpath 'org.jooq:jooq-codegen:3.16.23'
+        classpath 'org.jooq:jooq-meta:3.19.29'
+        classpath 'org.jooq:jooq-codegen:3.19.29'
         classpath 'com.mysql:mysql-connector-j:9.3.0'
         classpath 'org.xerial:sqlite-jdbc:3.50.3.0'
     }
@@ -14,11 +14,11 @@ buildscript {
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '2.2.21'
     id 'org.jetbrains.kotlin.plugin.serialization' version '2.2.21'
-    id 'io.typst.spigradle' version '3.1.2'
+    id 'io.typst.spigradle' version '3.7.3'
 }
 
 group = 'dev.entree'
-version = '1.0.1'
+version = '2.0.0'
 
 repositories {
     mavenCentral()
@@ -36,13 +36,13 @@ def libs = [
         'io.typst:command-bukkit:3.1.6',
         'io.typst:command-kotlin:3.1.6',
 
-        'com.zaxxer:HikariCP:5.1.0',
+        'com.zaxxer:HikariCP:7.0.2',
         'com.mysql:mysql-connector-j:9.3.0',
-        'org.xerial:sqlite-jdbc:3.50.3.0',
-        'org.jooq:jooq:3.16.23',
-        'org.jooq:jooq-meta:3.16.23',
-        'org.flywaydb:flyway-core:9.22.3',
-        'org.flywaydb:flyway-mysql:9.22.3',
+        'org.xerial:sqlite-jdbc:3.51.1.0',
+        'org.jooq:jooq:3.19.29',
+        'org.jooq:jooq-meta:3.19.29',
+        'org.flywaydb:flyway-core:11.18.0',
+        'org.flywaydb:flyway-mysql:11.18.0',
         'org.bstats:bstats-bukkit:3.0.2'
 ]
 
@@ -95,18 +95,17 @@ spigot {
     softDepends = ['PlaceholderAPI']
 }
 
+debugSpigot {
+    version.set('1.20.1')
+    eula.set(true)
+}
+
 sourceSets {
     main {
         java {
             srcDirs += 'src-gen'
         }
     }
-}
-
-tasks.register("debug", Exec) {
-    dependsOn(assemble)
-    group = 'build'
-    commandLine "cmd", "/c", "Powershell -File ${layout.projectDirectory.file("debug.ps1").asFile.absolutePath} ${project.name}-${project.version}"
 }
 
 import org.jooq.codegen.GenerationTool

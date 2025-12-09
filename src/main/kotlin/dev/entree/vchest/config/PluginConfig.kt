@@ -13,6 +13,7 @@ data class PluginConfig(
     val chestTitle: String = "Chest %num%",
     val chestSizeRow: Int = 6,
     val noPermissionMessage: String = "§cNo permission: %perm%",
+    val alreadyOpenedChestMessage: String = "§cThis chest is already open(locked)!",
     val overrideLocale: String = "",
 ) {
     val locale: String

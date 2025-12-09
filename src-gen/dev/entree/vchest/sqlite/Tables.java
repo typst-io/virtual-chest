@@ -5,6 +5,7 @@ package dev.entree.vchest.sqlite;
 
 
 import dev.entree.vchest.sqlite.tables.Chest;
+import dev.entree.vchest.sqlite.tables.FlywaySchemaHistory;
 import dev.entree.vchest.sqlite.tables.Player;
 import dev.entree.vchest.sqlite.tables.Slot;
 
@@ -12,13 +13,18 @@ import dev.entree.vchest.sqlite.tables.Slot;
 /**
  * Convenience access to all tables in the default schema.
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Tables {
 
     /**
      * The table <code>chest</code>.
      */
     public static final Chest CHEST = Chest.CHEST;
+
+    /**
+     * The table <code>flyway_schema_history</code>.
+     */
+    public static final FlywaySchemaHistory FLYWAY_SCHEMA_HISTORY = FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY;
 
     /**
      * The table <code>player</code>.
