@@ -1,14 +1,11 @@
 package dev.entree.vchest.dbms
 
-import dev.entree.vchest.chestPlugin
 import dev.entree.vchest.sqlite.Tables
 import org.bukkit.Bukkit
 import org.jooq.DSLContext
-import org.jooq.DatePart
 import org.jooq.impl.DSL
 import java.time.LocalDateTime
 import java.util.*
-import java.util.logging.Level
 
 object SQLiteQueries {
     fun upsertChest(ctx: DSLContext, uuid: UUID, num: Int, items: Map<Int, ByteArray>): IntArray {
@@ -90,7 +87,7 @@ object SQLiteQueries {
                 .fetchOne { it.value1() } ?: return@transactionResult emptyList()
 
             // lock
-            val requiresAt = DSL.localDateTimeAdd(DSL.currentLocalDateTime(), 4, DatePart.SECOND)
+            val requiresAt = JDBCChestRepository.getCurrentExpirationTime()
             val lockUpdates =
                 try {
                     dsl
