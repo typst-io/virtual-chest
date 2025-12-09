@@ -22,6 +22,10 @@ public class JDBCUtils {
                 ? String.format("jdbc:%s:%s", protocol, new File(dbDir, dbName + ".db").getAbsolutePath())
                 : String.format("jdbc:%s://%s:%s/%s?createDatabaseIfNotExist=true&user=%s&password=%s&useSSL=false&allowPublicKeyRetrieval=true&useAffectedRows=true", protocol, host, port, dbName, username, password);
         hikariConfig.setJdbcUrl(url);
+        if (dbDir == null) {
+            hikariConfig.setUsername(username);
+            hikariConfig.setPassword(password);
+        }
         return new HikariDataSource(hikariConfig);
     }
 
