@@ -5,7 +5,6 @@ package dev.entree.vchest.sqlite;
 
 
 import dev.entree.vchest.sqlite.tables.Chest;
-import dev.entree.vchest.sqlite.tables.FlywaySchemaHistory;
 import dev.entree.vchest.sqlite.tables.Player;
 import dev.entree.vchest.sqlite.tables.Slot;
 
@@ -20,11 +19,6 @@ public class Tables {
      * The table <code>chest</code>.
      */
     public static final Chest CHEST = Chest.CHEST;
-
-    /**
-     * The table <code>flyway_schema_history</code>.
-     */
-    public static final FlywaySchemaHistory FLYWAY_SCHEMA_HISTORY = FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY;
 
     /**
      * The table <code>player</code>.

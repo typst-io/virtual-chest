@@ -4,7 +4,6 @@
 package dev.entree.vchest.mysql;
 
 
-import dev.entree.vchest.mysql.tables.FlywaySchemaHistory;
 import dev.entree.vchest.mysql.tables.Slot;
 
 import org.jooq.Index;
@@ -23,6 +22,5 @@ public class Indexes {
     // INDEX definitions
     // -------------------------------------------------------------------------
 
-    public static final Index FLYWAY_SCHEMA_HISTORY_FLYWAY_SCHEMA_HISTORY_S_IDX = Internal.createIndex(DSL.name("flyway_schema_history_s_idx"), FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY, new OrderField[] { FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY.SUCCESS }, false);
     public static final Index SLOT_SLOT_PLAYER_ID = Internal.createIndex(DSL.name("slot_player_id"), Slot.SLOT, new OrderField[] { Slot.SLOT.SLOT_PLAYER_ID, Slot.SLOT.SLOT_CHEST_NUM }, false);
 }

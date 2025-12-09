@@ -5,7 +5,6 @@ package dev.entree.vchest.sqlite;
 
 
 import dev.entree.vchest.sqlite.tables.Chest;
-import dev.entree.vchest.sqlite.tables.FlywaySchemaHistory;
 import dev.entree.vchest.sqlite.tables.Player;
 import dev.entree.vchest.sqlite.tables.Slot;
 
@@ -36,11 +35,6 @@ public class DefaultSchema extends SchemaImpl {
     public final Chest CHEST = Chest.CHEST;
 
     /**
-     * The table <code>flyway_schema_history</code>.
-     */
-    public final FlywaySchemaHistory FLYWAY_SCHEMA_HISTORY = FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY;
-
-    /**
      * The table <code>player</code>.
      */
     public final Player PLAYER = Player.PLAYER;
@@ -67,7 +61,6 @@ public class DefaultSchema extends SchemaImpl {
     public final List<Table<?>> getTables() {
         return Arrays.asList(
             Chest.CHEST,
-            FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY,
             Player.PLAYER,
             Slot.SLOT
         );
