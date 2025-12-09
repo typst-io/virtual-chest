@@ -1,13 +1,11 @@
 package dev.entree.vchest.dbms
 
-import dev.entree.vchest.chestPlugin
 import dev.entree.vchest.mysql.Tables
 import org.bukkit.Bukkit
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import java.time.LocalDateTime
 import java.util.*
-import kotlin.RequiresOptIn.Level
 
 object MySQLQueries {
     fun upsertChest(ctx: DSLContext, uuid: UUID, num: Int, items: Map<Int, ByteArray>): IntArray {
@@ -74,7 +72,7 @@ object MySQLQueries {
     }
 
     fun popChest(ctx: DSLContext, uuid: UUID, num: Int): List<SlotDAO>? {
-        val result = ctx.transactionResult<List<SlotDAO>?> { trx ->
+        return ctx.transactionResult<List<SlotDAO>?> { trx ->
             val dsl = trx.dsl()
             val playerId = dsl.select(Tables.PLAYER.PLAYER_ID)
                 .from(Tables.PLAYER)
@@ -130,7 +128,6 @@ object MySQLQueries {
                 .execute()
             slots.map(MySQLObjects::fromSlot)
         }
-        return result
     }
 
     fun getOrCreatePlayer(
