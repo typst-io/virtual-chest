@@ -58,28 +58,28 @@ class JDBCChestRepository(
     }
 
     override fun upsertChest(
-        uuid: UUID,
+        playerUid: UUID,
         num: Int,
         items: Map<Int, ByteArray>,
     ): CompletableFuture<IntArray> {
         return useDatabaseAsync {
             if (it.dialect() == SQLDialect.SQLITE) {
-                SQLiteQueries.upsertChest(it, uuid, num, items)
+                SQLiteQueries.upsertChest(it, playerUid, num, items)
             } else {
-                MySQLQueries.upsertChest(it, uuid, num, items)
+                MySQLQueries.upsertChest(it, playerUid, num, items)
             }
         }
     }
 
     override fun popChest(
-        uuid: UUID,
+        playerUid: UUID,
         num: Int,
     ): CompletableFuture<List<SlotDAO>?> {
         return useDatabaseAsync {
             if (it.dialect() == SQLDialect.SQLITE) {
-                SQLiteQueries.popChest(it, uuid, num)
+                SQLiteQueries.popChest(it, playerUid, num)
             } else {
-                MySQLQueries.popChest(it, uuid, num)
+                MySQLQueries.popChest(it, playerUid, num)
             }
         }
     }
@@ -115,14 +115,13 @@ class JDBCChestRepository(
     }
 
     override fun renewChestExpiration(
-        uuid: UUID,
-        num: Int,
-    ): CompletableFuture<Int> {
+        keys: Set<ChestKey>,
+    ): CompletableFuture<IntArray> {
         return useDatabaseAsync {
             if (it.dialect() == SQLDialect.SQLITE) {
-                SQLiteQueries.renewChestExpiration(it, uuid, num)
+                SQLiteQueries.renewChestExpiration(it, keys)
             } else {
-                MySQLQueries.renewChestExpiration(it, uuid, num)
+                MySQLQueries.renewChestExpiration(it, keys)
             }
         }
     }

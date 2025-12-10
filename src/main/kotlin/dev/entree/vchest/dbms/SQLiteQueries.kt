@@ -270,17 +270,33 @@ object SQLiteQueries {
         }
     }
 
-    fun renewChestExpiration(ctx: DSLContext, uuid: UUID, num: Int): Int {
+    fun renewChestExpiration(ctx: DSLContext, keys: Set<ChestKey>): IntArray {
+        if (keys.isEmpty()) {
+            return intArrayOf()
+        }
         return ctx.transactionResult { trx ->
             val dsl = trx.dsl()
-            dsl.update(Tables.CHEST.join(Tables.PLAYER).on(Tables.PLAYER.PLAYER_ID.eq(Tables.CHEST.CHEST_PLAYER_ID)))
+
+            val renewTemplate = dsl
+                .update(
+                    Tables.CHEST
+                        .join(Tables.PLAYER)
+                        .on(Tables.PLAYER.PLAYER_ID.eq(Tables.CHEST.CHEST_PLAYER_ID))
+                )
                 .set(Tables.CHEST.CHEST_EXPIRES_AT, JDBCChestRepository.getCurrentExpirationTime())
                 .where(
-                    Tables.PLAYER.PLAYER_UUID.eq(uuid.toString())
+                    Tables.PLAYER.PLAYER_UUID.eq(DSL.param(Tables.PLAYER.PLAYER_UUID.dataType))
                         .and(Tables.CHEST.CHEST_EXPIRES_AT.isNotNull)
-                        .and(Tables.CHEST.CHEST_NUM.eq(num))
+                        .and(Tables.CHEST.CHEST_NUM.eq(DSL.param(Tables.CHEST.CHEST_NUM.dataType)))
                 )
-                .execute()
+            val batch = dsl.batch(renewTemplate)
+            for (key in keys) {
+                batch.bind(
+                    key.playerUid.toString(),
+                    key.num
+                )
+            }
+            batch.execute()
         }
     }
 }
