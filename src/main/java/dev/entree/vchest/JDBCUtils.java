@@ -6,6 +6,9 @@ import org.flywaydb.core.Flyway;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.stream.Stream;
 
 public class JDBCUtils {
     public static HikariDataSource getDataSource(JDBCContext ctx) {
@@ -18,14 +21,16 @@ public class JDBCUtils {
         String dbName = ctx.getDbName();
         // hikari
         HikariConfig hikariConfig = new HikariConfig();
+        Stream<Object> args = dbDir != null
+                ? Stream.of(protocol, new File(dbDir, dbName + ".db").getAbsolutePath())
+                : Stream.of(protocol, host, port, dbName, username, password);
+        Object[] escapeArgs = args
+                .map(xs -> URLEncoder.encode(xs.toString(), StandardCharsets.UTF_8))
+                .toArray();
         String url = dbDir != null
-                ? String.format("jdbc:%s:%s", protocol, new File(dbDir, dbName + ".db").getAbsolutePath())
-                : String.format("jdbc:%s://%s:%s/%s?createDatabaseIfNotExist=true&user=%s&password=%s&useSSL=false&allowPublicKeyRetrieval=true&useAffectedRows=true", protocol, host, port, dbName, username, password);
+                ? String.format("jdbc:%s:%s", escapeArgs)
+                : String.format("jdbc:%s://%s:%s/%s?createDatabaseIfNotExist=true&user=%s&password=%s&useSSL=false&allowPublicKeyRetrieval=true&useAffectedRows=true", escapeArgs);
         hikariConfig.setJdbcUrl(url);
-        if (dbDir == null) {
-            hikariConfig.setUsername(username);
-            hikariConfig.setPassword(password);
-        }
         return new HikariDataSource(hikariConfig);
     }
 
