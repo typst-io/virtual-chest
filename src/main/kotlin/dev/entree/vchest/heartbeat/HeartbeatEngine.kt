@@ -3,6 +3,7 @@ package dev.entree.vchest.heartbeat
 import dev.entree.vchest.ChestPlugin
 import dev.entree.vchest.chestPlugin
 import dev.entree.vchest.dbms.ChestKey
+import dev.entree.vchest.thenAcceptSync
 import org.bukkit.event.Listener
 import org.bukkit.scheduler.BukkitRunnable
 import java.time.Duration
@@ -20,7 +21,9 @@ object HeartbeatEngine : Listener {
                 for ((playerId, viewCtx) in chestPlugin.openingChests) {
                     updates += ChestKey(viewCtx.num, playerId)
                 }
-                chestPlugin.repository.renewChestExpiration(updates)
+                chestPlugin.repository.renewChestExpiration(updates).thenAcceptSync {
+                    // Nothing
+                }
             }
         }.runTaskTimer(plugin, 1L, 1L)
     }

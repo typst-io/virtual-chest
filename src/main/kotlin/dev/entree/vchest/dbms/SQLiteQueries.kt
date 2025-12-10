@@ -38,6 +38,11 @@ object SQLiteQueries {
                 .set(Tables.CHEST.CHEST_EXPIRES_AT, null as? LocalDateTime)
                 .execute()
 
+            dsl.deleteFrom(Tables.SLOT)
+                .where(Tables.SLOT.SLOT_PLAYER_ID.eq(playerId))
+                .and(Tables.SLOT.SLOT_CHEST_NUM.eq(num))
+                .execute()
+
             if (items.isNotEmpty()) {
                 val template = dsl
                     .insertInto(
@@ -292,7 +297,7 @@ object SQLiteQueries {
             val batch = dsl.batch(renewTemplate)
             for (key in keys) {
                 batch.bind(
-                    key.playerUid.toString(),
+                    key.playerUuid.toString(),
                     key.num
                 )
             }

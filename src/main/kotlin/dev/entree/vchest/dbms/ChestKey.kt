@@ -4,5 +4,5 @@ import java.util.*
 
 data class ChestKey(
     val num: Int,
-    val playerUid: UUID,
+    val playerUuid: UUID,
 )

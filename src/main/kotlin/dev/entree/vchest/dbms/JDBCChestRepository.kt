@@ -41,7 +41,7 @@ class JDBCChestRepository(
         }
 
         fun getCurrentExpirationTime(): Field<LocalDateTime> {
-            return DSL.localDateTimeAdd(DSL.currentLocalDateTime(), chestPlugin.timeoutSecond, DatePart.SECOND)
+            return DSL.localDateTimeAdd(DSL.currentLocalDateTime(), DSL.inline(chestPlugin.timeoutSecond), DatePart.SECOND)
         }
     }
 
@@ -58,28 +58,28 @@ class JDBCChestRepository(
     }
 
     override fun upsertChest(
-        playerUid: UUID,
+        playerUuid: UUID,
         num: Int,
         items: Map<Int, ByteArray>,
     ): CompletableFuture<IntArray> {
         return useDatabaseAsync {
             if (it.dialect() == SQLDialect.SQLITE) {
-                SQLiteQueries.upsertChest(it, playerUid, num, items)
+                SQLiteQueries.upsertChest(it, playerUuid, num, items)
             } else {
-                MySQLQueries.upsertChest(it, playerUid, num, items)
+                MySQLQueries.upsertChest(it, playerUuid, num, items)
             }
         }
     }
 
-    override fun popChest(
-        playerUid: UUID,
+    override fun fetchChest(
+        playerUuid: UUID,
         num: Int,
     ): CompletableFuture<List<SlotDAO>?> {
         return useDatabaseAsync {
             if (it.dialect() == SQLDialect.SQLITE) {
-                SQLiteQueries.popChest(it, playerUid, num)
+                SQLiteQueries.popChest(it, playerUuid, num)
             } else {
-                MySQLQueries.popChest(it, playerUid, num)
+                MySQLQueries.popChest(it, playerUuid, num)
             }
         }
     }

@@ -36,6 +36,11 @@ object MySQLQueries {
                 )
                 .execute()
 
+            dsl.deleteFrom(Tables.SLOT)
+                .where(Tables.SLOT.SLOT_PLAYER_ID.eq(playerId))
+                .and(Tables.SLOT.SLOT_CHEST_NUM.eq(num))
+                .execute()
+
             if (items.isNotEmpty()) {
                 val template = dsl
                     .insertInto(
@@ -121,11 +126,6 @@ object MySQLQueries {
                 .and(Tables.SLOT.SLOT_PLAYER_ID.eq(playerId))
                 .forUpdate()
                 .fetchInto(Tables.SLOT)
-
-            dsl.deleteFrom(Tables.SLOT)
-                .where(Tables.SLOT.SLOT_PLAYER_ID.eq(playerId))
-                .and(Tables.SLOT.SLOT_CHEST_NUM.eq(num))
-                .execute()
             slots.map(MySQLObjects::fromSlot)
         }
     }
@@ -276,7 +276,7 @@ object MySQLQueries {
             val batch = dsl.batch(renewTemplate)
             for (key in keys) {
                 batch.bind(
-                    key.playerUid.toString(),
+                    key.playerUuid.toString(),
                     key.num
                 )
             }
