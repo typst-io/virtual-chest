@@ -94,7 +94,7 @@ sealed interface ChestCommand {
             if (prevCtx != null && viewer.hasPermission(ChestPlugin.perm)) {
                 Bukkit.getPlayer(prevCtx.viewer)?.closeInventory()
             }
-            repository.popChest(uuid, num).thenAcceptSync { records ->
+            repository.fetchChest(uuid, num).thenAcceptSync { records ->
                 if (records == null) {
                     viewer.sendMessage(chestPlugin.pluginConfig.alreadyOpenedChestMessage.colorize())
                     return@thenAcceptSync
