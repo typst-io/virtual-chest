@@ -1,6 +1,6 @@
 package dev.entree.vchest
 
-import java.util.UUID
+import java.util.*
 
 data class ChestViewContext(
     val owner: UUID,

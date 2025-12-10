@@ -3,13 +3,18 @@ package dev.entree.vchest.dbms
 import com.zaxxer.hikari.HikariDataSource
 import dev.entree.vchest.JDBCContext
 import dev.entree.vchest.JDBCUtils
+import dev.entree.vchest.chestPlugin
 import dev.entree.vchest.futureTaskAsync
 import org.bukkit.plugin.Plugin
 import org.jooq.DSLContext
+import org.jooq.DatePart
+import org.jooq.Field
 import org.jooq.SQLDialect
 import org.jooq.impl.DSL
+import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.CompletableFuture
+import java.util.logging.Level
 
 class JDBCChestRepository(
     private val plugin: Plugin,
@@ -30,6 +35,14 @@ class JDBCChestRepository(
             JDBCUtils.initDatabase(dataSource, ctx.classLoader, ctx.protocol)
             return JDBCChestRepository(plugin, dataSource, sqlDialect)
         }
+
+        fun onLockError(ex: Exception) {
+            chestPlugin.logger.log(Level.WARNING, "Failed to acquire lock (this might not be an error)", ex)
+        }
+
+        fun getCurrentExpirationTime(): Field<LocalDateTime> {
+            return DSL.localDateTimeAdd(DSL.currentLocalDateTime(), DSL.inline(chestPlugin.timeoutSecond), DatePart.SECOND)
+        }
     }
 
     private fun <A> useDatabaseAsync(f: (DSLContext) -> A): CompletableFuture<A> {
@@ -45,28 +58,28 @@ class JDBCChestRepository(
     }
 
     override fun upsertChest(
-        uuid: UUID,
+        playerUuid: UUID,
         num: Int,
         items: Map<Int, ByteArray>,
     ): CompletableFuture<IntArray> {
         return useDatabaseAsync {
             if (it.dialect() == SQLDialect.SQLITE) {
-                SQLiteQueries.upsertChest(it, uuid, num, items)
+                SQLiteQueries.upsertChest(it, playerUuid, num, items)
             } else {
-                MySQLQueries.upsertChest(it, uuid, num, items)
+                MySQLQueries.upsertChest(it, playerUuid, num, items)
             }
         }
     }
 
-    override fun popChest(
-        uuid: UUID,
+    override fun fetchChest(
+        playerUuid: UUID,
         num: Int,
-    ): CompletableFuture<List<SlotDAO>> {
+    ): CompletableFuture<List<SlotDAO>?> {
         return useDatabaseAsync {
             if (it.dialect() == SQLDialect.SQLITE) {
-                SQLiteQueries.popChest(it, uuid, num)
+                SQLiteQueries.popChest(it, playerUuid, num)
             } else {
-                MySQLQueries.popChest(it, uuid, num)
+                MySQLQueries.popChest(it, playerUuid, num)
             }
         }
     }
@@ -97,6 +110,18 @@ class JDBCChestRepository(
                 SQLiteQueries.setWholeSnapshot(it, snapshot)
             } else {
                 MySQLQueries.setWholeSnapshot(it, snapshot)
+            }
+        }
+    }
+
+    override fun renewChestExpiration(
+        keys: Set<ChestKey>,
+    ): CompletableFuture<IntArray> {
+        return useDatabaseAsync {
+            if (it.dialect() == SQLDialect.SQLITE) {
+                SQLiteQueries.renewChestExpiration(it, keys)
+            } else {
+                MySQLQueries.renewChestExpiration(it, keys)
             }
         }
     }

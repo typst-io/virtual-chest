@@ -12,7 +12,7 @@ import dev.entree.vchest.mysql.tables.Slot;
 /**
  * Convenience access to all tables in mc_virtual_chest.
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Tables {
 
     /**

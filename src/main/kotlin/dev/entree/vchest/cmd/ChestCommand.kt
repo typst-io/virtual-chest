@@ -68,9 +68,6 @@ sealed interface ChestCommand {
         }
 
         fun saveChest(player: Player, num: Int, items: Map<Int, ItemStack>, repository: ChestRepository) {
-            if (items.isEmpty()) {
-                return
-            }
             chestPlugin.futureTaskAsync {
                 items.flatMap {
                     val bytes = runCatching {
@@ -98,6 +95,10 @@ sealed interface ChestCommand {
                 Bukkit.getPlayer(prevCtx.viewer)?.closeInventory()
             }
             repository.popChest(uuid, num).thenAcceptSync { records ->
+                if (records == null) {
+                    viewer.sendMessage(chestPlugin.pluginConfig.alreadyOpenedChestMessage.colorize())
+                    return@thenAcceptSync
+                }
                 val items = records.flatMap {
                     val itemBytes = it.itemBytes
                     val item = if (itemBytes.isNotEmpty()) {
@@ -110,7 +111,7 @@ sealed interface ChestCommand {
                     } else emptyList()
                 }.toMap()
                 val config = chestPlugin.pluginConfig
-                val title = config.chestTitle.replace("%num%", num.toString())
+                val title = config.chestTitle.replace("%num%", num.toString()).colorize()
                 val row = chestPlugin.pluginConfig.chestSizeRow.coerceIn(1, 6)
                 val (coerceItems, otherItems) = InventoryEngine.coerceRow(items, row)
                 val inv = InventoryEngine.createChest(title, row, coerceItems) { newItems ->
@@ -147,7 +148,7 @@ sealed interface ChestCommand {
                             chestPlugin.pluginConfig.noPermissionMessage.replace(
                                 "%perm%",
                                 perm
-                            )
+                            ).colorize()
                         )
                     }
                 }

@@ -6,6 +6,7 @@ import dev.entree.vchest.config.PluginConfig.Companion.dbName
 import dev.entree.vchest.dbms.ChestRepository
 import dev.entree.vchest.dbms.JDBCChestRepository
 import dev.entree.vchest.dbms.SQLEngine
+import dev.entree.vchest.heartbeat.HeartbeatEngine
 import dev.entree.vchest.inventory.InventoryEngine
 import io.typst.bukkit.kotlin.serialization.bukkitPluginYaml
 import kotlinx.serialization.decodeFromString
@@ -18,6 +19,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.io.Closeable
 import java.io.File
 import java.text.NumberFormat
+import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
@@ -30,10 +32,10 @@ fun nfmt(number: Number): String =
 val chestPlugin: ChestPlugin get() = JavaPlugin.getPlugin(ChestPlugin::class.java)
 
 fun <A> CompletableFuture<A>.thenAcceptSync(f: (A) -> Unit) {
-    val f2: (A?, Throwable?) -> Unit = { a, th ->
+    val f2: (A, Throwable?) -> Unit = { a, th ->
         if (th != null) {
             chestPlugin.logger.log(Level.WARNING, "Error while accepting", th)
-        } else if (a != null) {
+        } else {
             try {
                 f(a)
             } catch (th: Throwable) {
@@ -56,6 +58,8 @@ class ChestPlugin : JavaPlugin() {
         runTask(0, command::run)
     }
     val openingChests: MutableMap<UUID, ChestViewContext> = mutableMapOf()
+    var lastTick: LocalDateTime = LocalDateTime.now()
+    var timeoutSecond: Int = 60
     lateinit var repository: ChestRepository
 
     companion object {
@@ -64,6 +68,11 @@ class ChestPlugin : JavaPlugin() {
 
     override fun onEnable() {
         // config
+        timeoutSecond = try {
+            Bukkit.spigot().spigotConfig.getInt("settings.timeout-time", -1).takeIf { it > 0 }
+        } catch (_: Exception) {
+            null
+        } ?: 60
         if (configFile.isFile) {
             pluginConfig = bukkitPluginYaml.decodeFromString<PluginConfig>(configFile.readText())
         } else {
@@ -91,6 +100,7 @@ class ChestPlugin : JavaPlugin() {
         InventoryEngine.register(this)
         System.setProperty("bstats.relocatecheck", "false")
         Metrics(this, 27796)
+        HeartbeatEngine.register(this)
     }
 
     override fun onDisable() {
@@ -103,11 +113,13 @@ class ChestPlugin : JavaPlugin() {
                 if (stack.type == Material.AIR) continue
                 items[index] = ItemStack(stack)
             }
-            ChestCommand.saveChest(p, chestCtx.num, items, repository)
+            try {
+                ChestCommand.saveChest(p, chestCtx.num, items, repository)
+            } catch (ex: Exception) {
+                logger.log(Level.WARNING, "Error while saving chests on disable", ex)
+            }
         }
-        runCatching {
-            repository.close()
-        }
+        runCatching { repository.close() }
     }
 
     fun getJDBCContext(config: PluginConfig = pluginConfig): JDBCContext {

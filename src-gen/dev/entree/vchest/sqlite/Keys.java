@@ -11,6 +11,7 @@ import dev.entree.vchest.sqlite.tables.records.ChestRecord;
 import dev.entree.vchest.sqlite.tables.records.PlayerRecord;
 import dev.entree.vchest.sqlite.tables.records.SlotRecord;
 
+import org.jooq.ForeignKey;
 import org.jooq.TableField;
 import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
@@ -21,14 +22,22 @@ import org.jooq.impl.Internal;
  * A class modelling foreign key relationships and constraints of tables in the
  * default schema.
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Keys {
 
     // -------------------------------------------------------------------------
     // UNIQUE and PRIMARY KEY definitions
     // -------------------------------------------------------------------------
 
-    public static final UniqueKey<ChestRecord> CHEST__ = Internal.createUniqueKey(Chest.CHEST, DSL.name(""), new TableField[] { Chest.CHEST.CHEST_PLAYER_ID, Chest.CHEST.CHEST_NUM }, true);
-    public static final UniqueKey<PlayerRecord> PLAYER__ = Internal.createUniqueKey(Player.PLAYER, DSL.name(""), new TableField[] { Player.PLAYER.PLAYER_ID, Player.PLAYER.PLAYER_UUID }, true);
-    public static final UniqueKey<SlotRecord> SLOT__ = Internal.createUniqueKey(Slot.SLOT, DSL.name(""), new TableField[] { Slot.SLOT.SLOT_SLOT, Slot.SLOT.SLOT_CHEST_NUM, Slot.SLOT.SLOT_PLAYER_ID }, true);
+    public static final UniqueKey<ChestRecord> CHEST__PK_CHEST = Internal.createUniqueKey(Chest.CHEST, DSL.name("pk_chest"), new TableField[] { Chest.CHEST.CHEST_PLAYER_ID, Chest.CHEST.CHEST_NUM }, true);
+    public static final UniqueKey<PlayerRecord> PLAYER__PK_PLAYER = Internal.createUniqueKey(Player.PLAYER, DSL.name("pk_player"), new TableField[] { Player.PLAYER.PLAYER_ID }, true);
+    public static final UniqueKey<PlayerRecord> PLAYER__UK_PLAYER_1_17799605 = Internal.createUniqueKey(Player.PLAYER, DSL.name("uk_player_1_17799605"), new TableField[] { Player.PLAYER.PLAYER_UUID }, true);
+    public static final UniqueKey<SlotRecord> SLOT__PK_SLOT = Internal.createUniqueKey(Slot.SLOT, DSL.name("pk_slot"), new TableField[] { Slot.SLOT.SLOT_SLOT, Slot.SLOT.SLOT_CHEST_NUM, Slot.SLOT.SLOT_PLAYER_ID }, true);
+
+    // -------------------------------------------------------------------------
+    // FOREIGN KEY definitions
+    // -------------------------------------------------------------------------
+
+    public static final ForeignKey<ChestRecord, PlayerRecord> CHEST__FK_CHEST_PK_PLAYER = Internal.createForeignKey(Chest.CHEST, DSL.name("fk_chest_pk_player"), new TableField[] { Chest.CHEST.CHEST_PLAYER_ID }, Keys.PLAYER__PK_PLAYER, new TableField[] { Player.PLAYER.PLAYER_ID }, true);
+    public static final ForeignKey<SlotRecord, ChestRecord> SLOT__FK_SLOT_PK_CHEST = Internal.createForeignKey(Slot.SLOT, DSL.name("fk_slot_pk_chest"), new TableField[] { Slot.SLOT.SLOT_PLAYER_ID, Slot.SLOT.SLOT_CHEST_NUM }, Keys.CHEST__PK_CHEST, new TableField[] { Chest.CHEST.CHEST_PLAYER_ID, Chest.CHEST.CHEST_NUM }, true);
 }

@@ -36,6 +36,7 @@ public class JDBCUtils {
                 .baselineOnMigrate(true)             // 기존 DB에 스키마 히스토리 없을 때 베이스라인 허용
                 .outOfOrder(false)                   // 버전 역전 허용 여부
                 .cleanDisabled(true)                 // 운영에서는 clean 금지 권장
+                .validateMigrationNaming(true)
                 .load()
                 .migrate();
         if (loader != null) {
