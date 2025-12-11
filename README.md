@@ -4,13 +4,13 @@ A Bukkit plugin that provides virtual chests for players, specialized for multi-
 
 ## Changelogs
 
+### 2.0.1
+- fix: the case using '%' character in mysql id/pw using url encoder
+
 ### 2.0.0
 - fix!: race condition on openChest using a lease-based lock with heartbeat.
 - fix: set username/password via HikariConfig to prevent malformed JDBC URLs when password contains '%' by @SkyAsa2256
 - feat(config): add message `alreadyOpenedChestMessage`
-
-### 2.0.1
-- fix: the case using '%' character in mysql id/pw using url encoder
 
 ## Commands
 
