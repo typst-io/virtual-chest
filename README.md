@@ -1,6 +1,16 @@
 # VirtualChest
 
-A Bukkit plugin that provides virtual chests for players.
+A Bukkit plugin that provides virtual chests for players, specialized for multi-instance environments using a lease-based distributed lock with a heartbeat.
+
+## Changelogs
+
+### 2.0.0
+- fix!: race condition on openChest using a lease-based lock with heartbeat.
+- fix: set username/password via HikariConfig to prevent malformed JDBC URLs when password contains '%' by @SkyAsa2256
+- feat(config): add message `alreadyOpenedChestMessage`
+
+### 2.0.1
+- fix: the case using '%' character in mysql id/pw using url encoder
 
 ## Commands
 
@@ -26,6 +36,7 @@ The `config.yml` is reloaded when you save the file.
 - `chestTitle`: Title of the chest inventory
 - `chestSizeRow`: Number of rows in the chest inventory
 - `noPermissionMessage`: Message shown when using `/chest <chest-num>` without permission
+- `alreadyOpenedChestMessage`: Message shown when the chest was locked
 - `overrideLocale`: Override locale — `ko_kr`, `en_us`
 
 ## API
