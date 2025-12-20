@@ -4,6 +4,9 @@ A Bukkit plugin that provides virtual chests for players, specialized for multi-
 
 ## Changelogs
 
+### 2.1.0
+- feat(api): OpenChestContext for customTitle/onClose
+
 ### 2.0.1
 - fix: the case using '%' character in mysql id/pw using url encoder
 
