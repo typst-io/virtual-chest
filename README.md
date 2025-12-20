@@ -4,6 +4,9 @@ A Bukkit plugin that provides virtual chests for players, specialized for multi-
 
 ## Changelogs
 
+### 2.1.1
+- fix: error log on closing server
+
 ### 2.1.0
 - feat(api): OpenChestContext for customTitle/onClose
 
