@@ -15,6 +15,7 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '2.2.21'
     id 'org.jetbrains.kotlin.plugin.serialization' version '2.2.21'
     id 'io.typst.spigradle' version '3.7.3'
+    id 'maven-publish'
 }
 
 group = 'dev.entree'
@@ -144,5 +145,13 @@ task jooqCodegen {
                                 .withDirectory("$projectDir/src-gen")))
         GenerationTool.generate(mysqlConfig)
         GenerationTool.generate(sqliteConfig)
+    }
+}
+
+publishing {
+    publications {
+        create("vc", MavenPublication) {
+            from(components['java'])
+        }
     }
 }
