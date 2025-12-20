@@ -19,7 +19,7 @@ plugins {
 }
 
 group = 'dev.entree'
-version = '2.0.1'
+version = '2.1.0'
 
 repositories {
     mavenCentral()
@@ -32,10 +32,12 @@ repositories {
 def libs = [
         'org.jetbrains.kotlin:kotlin-stdlib:2.2.21',
         'org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.9.0',
-        'io.typst:bukkit-kotlin-serialization:3.1.2',
+        'io.typst:bukkit-kotlin-serialization:4.0.2',
         'com.charleskorn.kaml:kaml-jvm:0.96.0',
-        'io.typst:command-bukkit:3.1.6',
-        'io.typst:command-kotlin:3.1.6',
+        'io.typst:command-bukkit:3.1.7',
+        'io.typst:command-kotlin:3.1.7',
+        'io.typst:view-bukkit-kotlin:10.1.1',
+        'io.typst:inventory-bukkit-kotlin:2.7.6',
 
         'com.zaxxer:HikariCP:7.0.2',
         'com.mysql:mysql-connector-j:9.3.0',

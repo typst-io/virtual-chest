@@ -31,22 +31,35 @@ fun nfmt(number: Number): String =
 
 val chestPlugin: ChestPlugin get() = JavaPlugin.getPlugin(ChestPlugin::class.java)
 
-fun <A> CompletableFuture<A>.thenAcceptSync(f: (A) -> Unit) {
+fun <A, B> CompletableFuture<A>.thenApplySync(f: (A) -> B): CompletableFuture<B> {
+    return thenApplyAsync(f, chestPlugin.syncExecutor)
+}
+
+fun <A> CompletableFuture<A>.thenAcceptSyncPrime(f: (Result<A>) -> Unit): CompletableFuture<A> {
     val f2: (A, Throwable?) -> Unit = { a, th ->
         if (th != null) {
             chestPlugin.logger.log(Level.WARNING, "Error while accepting", th)
         } else {
             try {
-                f(a)
+                f(Result.success(a))
             } catch (th: Throwable) {
                 chestPlugin.logger.log(Level.WARNING, "Error while accepting sync", th)
+                f(Result.failure(th))
             }
         }
     }
-    if (chestPlugin.isEnabled) {
+    return if (chestPlugin.isEnabled) {
         whenCompleteAsync(f2, chestPlugin.syncExecutor)
     } else {
         whenComplete(f2)
+    }
+}
+
+fun <A> CompletableFuture<A>.thenAcceptSync(f: (A) -> Unit): CompletableFuture<A> {
+    return thenAcceptSyncPrime {
+        if (it.isSuccess) {
+            f(it.getOrThrow())
+        }
     }
 }
 
@@ -114,7 +127,9 @@ class ChestPlugin : JavaPlugin() {
                 items[index] = ItemStack(stack)
             }
             try {
-                ChestCommand.saveChest(p, chestCtx.num, items, repository)
+                ChestCommand.saveChest(p, chestCtx.num, items, repository).thenAcceptSync {
+                    // nothing
+                }
             } catch (ex: Exception) {
                 logger.log(Level.WARNING, "Error while saving chests on disable", ex)
             }

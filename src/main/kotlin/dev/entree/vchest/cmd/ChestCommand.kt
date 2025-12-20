@@ -25,6 +25,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
 import org.jooq.SQLDialect
 import java.util.*
+import java.util.concurrent.CompletableFuture
 
 sealed interface ChestCommand {
     data class OpenChest(val numO: Optional<Int>) : ChestCommand
@@ -67,8 +68,8 @@ sealed interface ChestCommand {
             BukkitCommands.registerPrime("창고", nodeKr, ::execute, { _, _ -> emptyList<String>() }, cmdConfig, plugin)
         }
 
-        fun saveChest(player: Player, num: Int, items: Map<Int, ItemStack>, repository: ChestRepository) {
-            chestPlugin.futureTaskAsync {
+        fun saveChest(player: Player, num: Int, items: Map<Int, ItemStack>, repository: ChestRepository): CompletableFuture<IntArray> {
+            return chestPlugin.futureTaskAsync {
                 items.flatMap {
                     val bytes = runCatching {
                         it.value.serializeAsBytes()
@@ -79,25 +80,35 @@ sealed interface ChestCommand {
                 }.toMap()
             }.flatMap { serializedItems ->
                 repository.upsertChest(player.uniqueId, num, serializedItems)
-            }.thenAcceptSync { results ->
+            }.thenApplySync { results ->
                 if (results.isEmpty() && player.isOnline) {
                     for ((_, item) in items) {
                         player.giveItemOrDrop(item)
                     }
                 }
+                results
             }
         }
 
-        fun openChest(viewer: Player, target: Player, num: Int, repository: ChestRepository) {
+        fun openChest(ctx: OpenChestContext): CompletableFuture<Boolean> {
+            val (viewer, num, target, title) = ctx
+            if (ctx.isOwnerPlayer) {
+                val openEvent = ChestOpenEvent(num, viewer)
+                Bukkit.getPluginManager().callEvent(openEvent)
+                if (openEvent.isCancelled) {
+                    return CompletableFuture.completedFuture(false)
+                }
+            }
+            val repository = chestPlugin.repository
             val uuid = target.uniqueId
             val prevCtx = chestPlugin.openingChests[uuid]
             if (prevCtx != null && viewer.hasPermission(ChestPlugin.perm)) {
                 Bukkit.getPlayer(prevCtx.viewer)?.closeInventory()
             }
-            repository.fetchChest(uuid, num).thenAcceptSync { records ->
+            return repository.fetchChest(uuid, num).thenApplySync { records ->
                 if (records == null) {
                     viewer.sendMessage(chestPlugin.pluginConfig.alreadyOpenedChestMessage.colorize())
-                    return@thenAcceptSync
+                    return@thenApplySync false
                 }
                 val items = records.flatMap {
                     val itemBytes = it.itemBytes
@@ -111,30 +122,38 @@ sealed interface ChestCommand {
                     } else emptyList()
                 }.toMap()
                 val config = chestPlugin.pluginConfig
-                val title = config.chestTitle.replace("%num%", num.toString()).colorize()
+                val title = title.ifEmpty { config.chestTitle.replace("%num%", num.toString()).colorize() }
                 val row = chestPlugin.pluginConfig.chestSizeRow.coerceIn(1, 6)
                 val (coerceItems, otherItems) = InventoryEngine.coerceRow(items, row)
                 val inv = InventoryEngine.createChest(title, row, coerceItems) { newItems ->
                     chestPlugin.openingChests.remove(uuid)
-                    saveChest(target, num, newItems, repository)
+                    saveChest(target, num, newItems, repository).thenAcceptSyncPrime {
+                        ctx.onClose?.invoke(it)
+                    }
                 }
                 viewer.openInventory(inv)
                 otherItems.forEach(viewer::giveItemOrDrop)
                 chestPlugin.openingChests[uuid] = ChestViewContext(uuid, num, viewer.uniqueId)
+                true
+            }
+        }
+
+        @Deprecated("Use openChest(OpenChestContext) instead.")
+        fun openChest(viewer: Player, target: Player, num: Int, repository: ChestRepository) {
+            openChest(OpenChestContext(viewer, num, target)).thenAcceptSync {
+                // nothing
             }
         }
 
         /**
          * Fires [ChestOpenEvent] event.
          */
+        @Deprecated("Use openChest(OpenChestContext) instead.")
         fun openChest(player: Player, num: Int, repository: ChestRepository): Boolean {
-            val openEvent = ChestOpenEvent(num, player)
-            Bukkit.getPluginManager().callEvent(openEvent)
-            if (openEvent.isCancelled) {
-                return false
-            }
-            openChest(player, player, num, repository)
-            return true
+            val ret = openChest(OpenChestContext(player, num))
+            return if (ret.isDone) {
+                ret.get()
+            } else true
         }
 
         fun execute(sender: CommandSender, x: ChestCommand) {
@@ -143,13 +162,19 @@ sealed interface ChestCommand {
                     val num = x.numO.orElse(1)
                     val player = getPlayerOrThrow(sender)
                     val perm = "virtualchest.chest.${num}"
-                    if (!player.hasPermission(perm) || !openChest(player, num, chestPlugin.repository)) {
+                    if (!player.hasPermission(perm)) {
                         throw CommandCancellationException(
                             chestPlugin.pluginConfig.noPermissionMessage.replace(
                                 "%perm%",
                                 perm
                             ).colorize()
                         )
+                    }
+                    val ctx = OpenChestContext(player, num)
+                    openChest(ctx).thenAcceptSync {
+                        if (!it) {
+                            sender.sendMessage("§cCancelled by the system.")
+                        }
                     }
                 }
 
