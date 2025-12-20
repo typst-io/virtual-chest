@@ -32,7 +32,11 @@ fun nfmt(number: Number): String =
 val chestPlugin: ChestPlugin get() = JavaPlugin.getPlugin(ChestPlugin::class.java)
 
 fun <A, B> CompletableFuture<A>.thenApplySync(f: (A) -> B): CompletableFuture<B> {
-    return thenApplyAsync(f, chestPlugin.syncExecutor)
+    if (chestPlugin.isEnabled) {
+        return thenApplyAsync(f, chestPlugin.syncExecutor)
+    } else {
+        return thenApply(f)
+    }
 }
 
 fun <A> CompletableFuture<A>.thenAcceptSyncPrime(f: (Result<A>) -> Unit): CompletableFuture<A> {
