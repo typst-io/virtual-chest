@@ -19,7 +19,7 @@ plugins {
 }
 
 group = 'dev.entree'
-version = '2.1.1'
+version = '2.1.2'
 
 repositories {
     mavenCentral()
@@ -81,9 +81,7 @@ spigot {
         register('vc') {
             aliases = ['chest']
         }
-        register('창고') {
-            aliases = ['상자', '가방', '배낭']
-        }
+        register('창고')
     }
     permissions {
         register('virtualchest.op')
