@@ -56,12 +56,41 @@ dependencies {
     compileOnly(lombok('1.18.42'))
     annotationProcessor(lombok('1.18.42'))
     compileOnly(fileTree(include: '*.jar', dir: 'libs'))
-    testImplementation 'org.jetbrains.kotlin:kotlin-test'
+    testImplementation(libs)
+    testImplementation paper('1.20.1')
+    testImplementation platform('org.junit:junit-bom:5.14.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.mockito:mockito-core:5.20.0'
+    testImplementation 'org.testcontainers:testcontainers-mysql:2.0.3'
 }
 
 test {
-    useJUnitPlatform()
+    useJUnitPlatform { excludeTags 'mysql' }
 }
+
+tasks.register('mysqlTest', Test) {
+    description = 'Reproduces bugs against an isolated MySQL server.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'mysql' }
+    shouldRunAfter test
+}
+
+tasks.withType(Test).configureEach {
+    maxParallelForks = 1
+    workingDir = layout.buildDirectory.dir("test-work/${name}").get().asFile
+    doFirst { workingDir.mkdirs() }
+    systemProperty 'org.jooq.no-logo', 'true'
+    systemProperty 'org.jooq.no-tips', 'true'
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+        exceptionFormat = 'full'
+    }
+}
+
+check.dependsOn mysqlTest
 
 java {
     withSourcesJar()

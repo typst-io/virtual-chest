@@ -2,6 +2,10 @@
 
 A Bukkit plugin that provides virtual chests for players, specialized for multi-instance environments using a lease-based distributed lock with a heartbeat.
 
+## Reproduction tests
+
+Run `./gradlew test mysqlTest --continue` to execute the regression reproductions. These tests assert safe behavior and currently fail for the known bugs. MySQL tests start a disposable server using Docker, or a local `mysqld` executable selected by `MYSQL_TEST_MYSQLD`. See [test cases, setup, and observed results](docs/test-reproductions.md).
+
 ## Changelogs
 
 ### 2.1.1
